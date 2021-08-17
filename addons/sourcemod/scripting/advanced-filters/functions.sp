@@ -95,6 +95,7 @@ void PerformBan(int client, const char[] message, const char[] filter)
 	if (gb_SourcebansPP)
 	{
 		SBPP_BanPlayer(0, client, gi_BanDuration, "Chat Abuse (autodetected by Advanced-Filters)");
+		LogToFile(gs_LogFilePath, "Banned \"%N [%s | %s]\" according to the chat filters. Message: \"%s\"", client, steamid, ip, message);
 	}
 	else
 	{
