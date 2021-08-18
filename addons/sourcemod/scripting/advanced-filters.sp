@@ -225,12 +225,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
 {
-	if (!reliable)
-	{
-		return Plugin_Continue;
-	}
-	
-	if (!gb_HideNameChangeMsg)
+	if (!reliable || !gb_HideNameChangeMsg)
 	{
 		return Plugin_Continue;
 	}
