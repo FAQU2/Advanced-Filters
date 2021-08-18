@@ -13,7 +13,7 @@ public Plugin myinfo =
 	name = "Advanced Filters",
 	author = "FAQU",
 	description = "Chat & Name filtering",
-	version = "1.0",
+	version = "1.1",
 	url = "https://github.com/FAQU2"
 };
 
@@ -21,12 +21,14 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-	gr_RegexSymbols = new Regex("[^[:ascii:]]+", PCRE_UTF8);
-	gr_RegexIP = new Regex("(?<!\\d)((2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)\\.){3}(2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)(?!\\d)");
+	gr_RegexASCII = new Regex("[^[:ascii:]]+", PCRE_UTF8);
+	gr_RegexIP = new Regex("(?<!\\d)(?:(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)\\.){3}(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)(?!\\d)");
+	gr_RegexURL = new Regex("(?:https?:\\/\\/)?(?:www\\.)?(?:\\w+\\.)+\\w+\\/[[:graph:]]*|(?:https?:\\/\\/|www\\.)(?:\\w+\\.)+\\w+");
 	
 	BuildPath(Path_SM, gs_ChatFilePath, sizeof(gs_ChatFilePath), "configs/advanced-filters/chatfilters.cfg");
 	BuildPath(Path_SM, gs_NameFilePath, sizeof(gs_NameFilePath), "configs/advanced-filters/namefilters.cfg");
-	BuildPath(Path_SM, gs_WhitelistFilePath, sizeof(gs_WhitelistFilePath), "configs/advanced-filters/whitelist.cfg");
+	BuildPath(Path_SM, gs_WhitelistIpFilePath, sizeof(gs_WhitelistIpFilePath), "configs/advanced-filters/whitelist-ip.cfg");
+	BuildPath(Path_SM, gs_WhitelistUrlFilePath, sizeof(gs_WhitelistUrlFilePath), "configs/advanced-filters/whitelist-url.cfg");
 	BuildPath(Path_SM, gs_LogFilePath, sizeof(gs_LogFilePath), "logs/advanced-filters.log");
 	
 	RegisterCommands();
@@ -92,10 +94,56 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	if (gb_BlockChatSymbols)
 	{
-		if (gr_RegexSymbols.Match(message) > 0)
+		if (gr_RegexASCII.Match(message) > 0)
 		{
 			PrintToChat(client, "Your message has been blocked as it contains non-ASCII characters.");
 			return Plugin_Handled;
+		}
+	}
+	
+	if (gb_BlockChatURL)
+	{
+		int matches;
+		if ((matches = gr_RegexURL.MatchAll(message)) > 0)
+		{
+			char substring[50];
+			
+			switch (gb_UseWhitelistURL)
+			{
+				case 0:
+				{
+					PrintToChat(client, "Your message has been blocked as it contains unpermitted URLs.");
+					return Plugin_Handled;
+				}
+				case 1:
+				{
+					for (int i = 0; i < matches; i++)
+					{
+						bool shouldblock = true;
+						
+						gr_RegexURL.GetSubString(0, substring, sizeof(substring), i);
+						
+						int loops = sizeof(gs_WhitelistURL);
+						for (int x = 0; x < loops; x++)
+						{
+							if (gs_WhitelistURL[x][0] == '\0')
+							{
+								break;
+							}
+							else if (StrContains(substring, gs_WhitelistURL[x], false) != -1)
+							{
+								shouldblock = false;
+								break;
+							}
+						}
+						if (shouldblock)
+						{
+							PrintToChat(client, "Your message has been blocked as it contains unpermitted URLs.");
+							return Plugin_Handled;
+						}
+					}
+				}
+			}
 		}
 	}
 	
@@ -123,46 +171,49 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		{
 			char substring[20];
 			
-			if (gb_UseWhitelist)
+			switch (gb_UseWhitelistIp)
 			{
-				for (int i = 0; i < matches; i++)
+				case 0:
 				{
-					bool shouldpunish = true;
-					
-					gr_RegexIP.GetSubString(0, substring, sizeof(substring), i);
-					
-					int loops = sizeof(gs_WhitelistFilters);
-					for (int x = 0; x < loops; x++)
+					gr_RegexIP.GetSubString(0, substring, sizeof(substring), 0);
+					PerformPunishment(client, message, substring);
+					return Plugin_Handled;
+				}
+				case 1:
+				{
+					for (int i = 0; i < matches; i++)
 					{
-						if (gs_WhitelistFilters[x][0] == '\0')
+						bool shouldpunish = true;
+						
+						gr_RegexIP.GetSubString(0, substring, sizeof(substring), i);
+						
+						int loops = sizeof(gs_WhitelistIp);
+						for (int x = 0; x < loops; x++)
 						{
-							break;
+							if (gs_WhitelistIp[x][0] == '\0')
+							{
+								break;
+							}
+							else if (strcmp(substring, gs_WhitelistIp[x]) == 0)
+							{
+								shouldpunish = false;
+								break;
+							}
 						}
-						else if (strcmp(substring, gs_WhitelistFilters[x]) == 0)
+						if (shouldpunish)
 						{
-							shouldpunish = false;
-							break;
+							PerformPunishment(client, message, substring);
+							return Plugin_Handled;
 						}
-					}
-					if (shouldpunish)
-					{
-						PerformPunishment(client, message, substring);
-						return Plugin_Handled;
 					}
 				}
-			}
-			else
-			{
-				gr_RegexIP.GetSubString(0, substring, sizeof(substring), 0);
-				PerformPunishment(client, message, substring);
-				return Plugin_Handled;
 			}
 		}
 	}
 	
 	if (gb_DisableTeamChat)
 	{
-		if (strcmp(command, "say_team") == 0)
+		if (message[0] != '@' && strcmp(command, "say_team") == 0)
 		{
 			FakeClientCommandEx(client, "say %s", message);
 			return Plugin_Handled;
@@ -174,12 +225,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 
 public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int playersNum, bool reliable, bool init)
 {
-	if (!reliable)
-	{
-		return Plugin_Continue;
-	}
-	
-	if (!gb_HideNameChangeMsg)
+	if (!reliable || !gb_HideNameChangeMsg)
 	{
 		return Plugin_Continue;
 	}

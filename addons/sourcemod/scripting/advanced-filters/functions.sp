@@ -1,4 +1,4 @@
-void WriteLinesToStringArray(const char[] filepath, char[][] stringarray, int stringsize)
+void WriteLinesToStringArray(const char[] filepath, char[][] stringarray, int sizeofstring)
 {
 	File file = OpenFile(filepath, "r");
 	
@@ -16,8 +16,13 @@ void WriteLinesToStringArray(const char[] filepath, char[][] stringarray, int st
 				
 				if (line[0] != '\0')
 				{
-					BreakString(line, stringarray[x], stringsize);
-					x++;
+					BreakString(line, line, sizeof(line));
+					
+					if (line[0] != '\0')
+					{
+						strcopy(stringarray[x], sizeofstring, line);
+						x++;
+					}
 				}
 			}
 		}
@@ -25,23 +30,23 @@ void WriteLinesToStringArray(const char[] filepath, char[][] stringarray, int st
 	delete file;
 }
 
-void EmptyStringArray(char[][] stringarray, int strings)
+void EmptyStringArray(char[][] stringarray, int sizeofarray)
 {
-	for (int x = 0; x < strings; x++)
+	for (int x = 0; x < sizeofarray; x++)
 	{
 		stringarray[x][0] = '\0';
 	}
 }
 
-void PrintStringArray(int client, char[][] stringarray, int strings)
+void PrintStringArray(int client, char[][] stringarray, int sizeofarray)
 {
 	int x, y;
 	
-	while (x < strings)
+	while (x < sizeofarray)
 	{
 		if (stringarray[x][0] != '\0')
 		{
-			ReplyToCommand(client, "%02i/%i  -  \"%s\"", x + 1, strings, stringarray[x]);
+			ReplyToCommand(client, "%02i/%02i  -  \"%s\"", x + 1, sizeofarray, stringarray[x]);
 			y++;
 		}
 		x++;
@@ -57,7 +62,8 @@ void ReloadFilters()
 {
 	EmptyStringArray(gs_ChatFilters, sizeof(gs_ChatFilters));
 	EmptyStringArray(gs_NameFilters, sizeof(gs_NameFilters));
-	EmptyStringArray(gs_WhitelistFilters, sizeof(gs_WhitelistFilters));
+	EmptyStringArray(gs_WhitelistIp, sizeof(gs_WhitelistIp));
+	EmptyStringArray(gs_WhitelistURL, sizeof(gs_WhitelistURL));
 	
 	if (gb_UseChatFilters)
 	{
@@ -67,9 +73,13 @@ void ReloadFilters()
 	{
 		WriteLinesToStringArray(gs_NameFilePath, gs_NameFilters, sizeof(gs_NameFilters[]));
 	}
-	if (gb_UseWhitelist)
+	if (gb_UseWhitelistIp)
 	{
-		WriteLinesToStringArray(gs_WhitelistFilePath, gs_WhitelistFilters, sizeof(gs_WhitelistFilters[]));
+		WriteLinesToStringArray(gs_WhitelistIpFilePath, gs_WhitelistIp, sizeof(gs_WhitelistIp[]));
+	}
+	if (gb_UseWhitelistURL)
+	{
+		WriteLinesToStringArray(gs_WhitelistUrlFilePath, gs_WhitelistURL, sizeof(gs_WhitelistURL[]));
 	}
 }
 
@@ -157,18 +167,57 @@ void PerformNameCheck(int client, Event event)
 	if (gb_RemoveNameSymbols)
 	{
 		int matches;
-		if ((matches = gr_RegexSymbols.MatchAll(name)) > 0)
+		if ((matches = gr_RegexASCII.MatchAll(name)) > 0)
 		{
 			char substring[64];
 			for (int x = 0; x < matches; x++)
 			{
-				if (gr_RegexSymbols.GetSubString(0, substring, sizeof(substring), x))
+				gr_RegexASCII.GetSubString(0, substring, sizeof(substring), x);
+				ReplaceStringEx(name, sizeof(name), substring, "");
+			}
+		}
+		TrimString(name);
+	}
+	
+	if (gb_RemoveNameURL)
+	{
+		int matches;
+		if ((matches = gr_RegexURL.MatchAll(name)) > 0)
+		{
+			char substring[20];
+			for (int i = 0; i < matches; i++)
+			{
+				gr_RegexURL.GetSubString(0, substring, sizeof(substring), i);
+				
+				switch (gb_UseWhitelistURL)
 				{
-					ReplaceStringEx(name, sizeof(name), substring, "");
+					case 0: ReplaceStringEx(name, sizeof(name), substring, "");
+					case 1:
+					{
+						bool shouldremove = true;
+				
+						int loops = sizeof(gs_WhitelistURL);
+						for (int x = 0; x < loops; x++)
+						{
+							if (gs_WhitelistURL[x][0] == '\0')
+							{
+								break;
+							}
+							else if (StrContains(substring, gs_WhitelistURL[x]) != -1)
+							{
+								shouldremove = false;
+								break;
+							}
+						}		
+						if (shouldremove)
+						{
+							ReplaceStringEx(name, sizeof(name), substring, "");
+						}
+					}
 				}
 			}
-			TrimString(name);
 		}
+		TrimString(name);
 	}
 	
 	if (gb_UseNameFilters)
@@ -176,13 +225,10 @@ void PerformNameCheck(int client, Event event)
 		int loops = sizeof(gs_NameFilters);
 		for (int x = 0; x < loops; x++)
 		{
-			if (gs_NameFilters[x][0] == '\0')
+			switch (gs_NameFilters[x][0])
 			{
-				break;
-			}
-			else if (StrContains(name, gs_NameFilters[x], false) != -1)
-			{
-				ReplaceString(name, sizeof(name), gs_NameFilters[x], "", false);
+				case '\0': break;
+				default: ReplaceString(name, sizeof(name), gs_NameFilters[x], "", false);
 			}
 		}
 		TrimString(name);
@@ -198,29 +244,32 @@ void PerformNameCheck(int client, Event event)
 			{
 				gr_RegexIP.GetSubString(0, substring, sizeof(substring), i);
 				
-				if (gb_UseWhitelist)
+				switch (gb_UseWhitelistIp)
 				{
-					bool shouldremove = true;
+					case 0: ReplaceStringEx(name, sizeof(name), substring, "");
+					case 1:
+					{
+						bool shouldremove = true;
 				
-					int loops = sizeof(gs_WhitelistFilters);
-					for (int x = 0; x < loops; x++)
-					{
-						if (gs_WhitelistFilters[x][0] == '\0')
+						int loops = sizeof(gs_WhitelistIp);
+						for (int x = 0; x < loops; x++)
 						{
-							break;
-						}
-						else if (strcmp(substring, gs_WhitelistFilters[x]) == 0)
+							if (gs_WhitelistIp[x][0] == '\0')
+							{
+								break;
+							}
+							else if (strcmp(substring, gs_WhitelistIp[x]) == 0)
+							{
+								shouldremove = false;
+								break;
+							}
+						}		
+						if (shouldremove)
 						{
-							shouldremove = false;
-							break;
+							ReplaceStringEx(name, sizeof(name), substring, "");
 						}
-					}		
-					if (shouldremove)
-					{
-						ReplaceStringEx(name, sizeof(name), substring, "");
 					}
 				}
-				else ReplaceStringEx(name, sizeof(name), substring, "");	
 			}
 		}
 		TrimString(name);

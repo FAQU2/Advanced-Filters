@@ -2,7 +2,8 @@ void RegisterCommands()
 {
 	RegAdminCmd("sm_chatfilters", Command_ChatFilters, ADMFLAG_ROOT, "Prints currently loaded chat filters.");
 	RegAdminCmd("sm_namefilters", Command_NameFilters, ADMFLAG_ROOT, "Prints currently loaded name filters.");
-	RegAdminCmd("sm_whitelist", Command_Whitelist, ADMFLAG_ROOT, "Prints currently loaded whitelist filters.");
+	RegAdminCmd("sm_whitelistip", Command_WhitelistIp, ADMFLAG_ROOT, "Prints currently loaded whitelisted IP addresses.");
+	RegAdminCmd("sm_whitelisturl", Command_WhitelistURL, ADMFLAG_ROOT, "Prints currently loaded whitelisted URLs.");
 	RegAdminCmd("sm_reloadfilters", Command_ReloadFilters, ADMFLAG_ROOT, "Re-reads all filters from their corresponding files.");
 }
 
@@ -34,15 +35,29 @@ public Action Command_NameFilters(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action Command_Whitelist(int client, int args)
+public Action Command_WhitelistIp(int client, int args)
 {
-	switch (gb_UseWhitelist)
+	switch (gb_UseWhitelistIp)
 	{
-		case 0: ReplyToCommand(client, "[Advanced Filters] Whitelist is disabled.");
+		case 0: ReplyToCommand(client, "[Advanced Filters] IP Whitelist is disabled.");
 		case 1:
 		{
-			ReplyToCommand(client, "[Advanced Filters] Whitelist Filters:");
-			PrintStringArray(client, gs_WhitelistFilters, sizeof(gs_WhitelistFilters));
+			ReplyToCommand(client, "[Advanced Filters] Whitelisted IP addresses:");
+			PrintStringArray(client, gs_WhitelistIp, sizeof(gs_WhitelistIp));
+		}
+	}
+	return Plugin_Handled;
+}
+
+public Action Command_WhitelistURL(int client, int args)
+{
+	switch (gb_UseWhitelistURL)
+	{
+		case 0: ReplyToCommand(client, "[Advanced Filters] URL Whitelist is disabled.");
+		case 1:
+		{
+			ReplyToCommand(client, "[Advanced Filters] Whitelisted URLs:");
+			PrintStringArray(client, gs_WhitelistURL, sizeof(gs_WhitelistURL));
 		}
 	}
 	return Plugin_Handled;
