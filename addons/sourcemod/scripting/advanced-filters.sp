@@ -13,7 +13,7 @@ public Plugin myinfo =
 	name = "Advanced Filters",
 	author = "FAQU",
 	description = "Chat & Name filtering",
-	version = "1.1",
+	version = "1.2",
 	url = "https://github.com/FAQU2"
 };
 
@@ -36,6 +36,7 @@ public void OnPluginStart()
 	HookAllConVars();
 	
 	HookEvent("player_connect", Event_PlayerConnect, EventHookMode_Pre);
+	HookEvent("player_disconnect", Event_PlayerDisconnect, EventHookMode_Pre);
 	HookEvent("player_changename", Event_PlayerChangename);
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 	
@@ -79,6 +80,23 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	char message[256];
 	strcopy(message, sizeof(message), argstring);
 	TrimString(message);
+	
+	if (gb_DisableTeamChat)
+	{
+		if (strcmp(command, "say") == 1 && !IsChatTrigger() && message[0] != '@' )
+		{
+			FakeClientCommandEx(client, "say %s", message);
+			return Plugin_Handled;
+		}
+	}
+	
+	if (gb_AdminImmunityChat)
+	{
+		if (CheckCommandAccess(client, "", gi_AdminImmunityFlags, true))
+		{
+			return Plugin_Continue;
+		}
+	}
 	
 	if (gb_HideChatCommands)
 	{
@@ -211,15 +229,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 	
-	if (gb_DisableTeamChat)
-	{
-		if (message[0] != '@' && strcmp(command, "say_team") == 0)
-		{
-			FakeClientCommandEx(client, "say %s", message);
-			return Plugin_Handled;
-		}
-	}
-	
 	return Plugin_Continue;
 }
 
@@ -254,6 +263,14 @@ public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int
 public Action Event_PlayerConnect(Event event, const char[] name, bool dontBroadcast)
 {
 	if (gb_HideConnectMsg)
+	{
+		SetEventBroadcast(event, true);
+	}
+}
+
+public Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
+{
+	if (gb_HideDisconnectMsg)
 	{
 		SetEventBroadcast(event, true);
 	}

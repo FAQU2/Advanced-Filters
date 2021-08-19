@@ -154,6 +154,14 @@ void PerformNameCheck(int client, Event event)
 		return;
 	}
 	
+	if (gb_AdminImmunityName)
+	{
+		if (CheckCommandAccess(client, "", gi_AdminImmunityFlags, true))
+		{
+			return;
+		}
+	}
+	
 	char name[128], namecopy[128];
 	
 	switch (event)
