@@ -83,19 +83,19 @@ void ReloadFilters()
 	}
 }
 
-void PerformBlock(int client, const char[] message)
+void PerformBlock(int client, const char[] message, const char[] content)
 {
-	PrintToChat(client, "Your message has been blocked as it contains unpermitted words.");
-	LogToFile(gs_LogFilePath, "Blocked \"%N\" message according to the chat filters. Message: \"%s\"", client, message);
+	PrintToChat(client, "Your message has been blocked as it contains %s.", content);
+	LogToFile(gs_LogFilePath, "Blocked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
 }
 
-void PerformKick(int client, const char[] message, const char[] filter)
+void PerformKick(int client, const char[] message, const char[] content, const char[] filter)
 {
-	KickClient(client, "Kicked for using unpermitted words in chat.\n\nUnpermitted words: %s", filter);
+	KickClient(client, "Kicked for typing %s in chat.\n\n%c%s: %s", content, CharToUpper(content[0]), content[1], filter);
 	LogToFile(gs_LogFilePath, "Kicked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
 }
 
-void PerformBan(int client, const char[] message, const char[] filter)
+void PerformBan(int client, const char[] message, const char[] content, const char[] filter)
 {
 	char steamid[32], ip[32];
 	
@@ -132,18 +132,18 @@ void PerformBan(int client, const char[] message, const char[] filter)
 	
 	switch (gi_BanDuration)
 	{
-		case 0: KickClient(client, "Banned permanently from the server.\n\nAdmin: Server Console\nReason: Chat Abuse (autodetected by Advanced-Filters)\nUnpermitted words: %s", filter);
-		default: KickClient(client, "Banned temporarily from the server.\n\nAdmin: Server Console\nDuration: %i minutes\nReason: Chat Abuse (autodetected by Advanced-Filters)\nUnpermitted words: %s", gi_BanDuration, filter);
+		case 0: KickClient(client, "Banned permanently from the server.\n\nAdmin: Server Console\nReason: typing %s in chat\n\n%c%s: %s", content, CharToUpper(content[0]), content[1], filter);
+		default: KickClient(client, "Banned temporarily from the server.\n\nAdmin: Server Console\nDuration: %i minutes\nReason: typing %s in chat\n\n%c%s: %s", gi_BanDuration, content, CharToUpper(content[0]), content[1], filter);
 	}
 }
 
-void PerformPunishment(int client, const char[] message, const char[] filter)
+void PerformPunishment(int client, const char[] message, const char[] content, const char[] filter)
 {
 	switch(gi_PunishmentMethod)
 	{
-		case 0: PerformBlock(client, message);
-		case 1: PerformKick(client, message, filter);
-		case 2: PerformBan(client, message, filter);
+		case 0: PerformBlock(client, message, content);
+		case 1: PerformKick(client, message, content, filter);
+		case 2: PerformBan(client, message, content, filter);
 	}
 }
 

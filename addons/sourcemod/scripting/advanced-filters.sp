@@ -114,7 +114,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	{
 		if (gr_RegexASCII.Match(message) > 0)
 		{
-			PrintToChat(client, "Your message has been blocked as it contains non-ASCII characters.");
+			PerformBlock(client, message, "non-ASCII characters");
 			return Plugin_Handled;
 		}
 	}
@@ -130,7 +130,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			{
 				case 0:
 				{
-					PrintToChat(client, "Your message has been blocked as it contains unpermitted URLs.");
+					PerformBlock(client, message, "unpermitted URL");
 					return Plugin_Handled;
 				}
 				case 1:
@@ -156,7 +156,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 						}
 						if (shouldblock)
 						{
-							PrintToChat(client, "Your message has been blocked as it contains unpermitted URLs.");
+							PerformBlock(client, message, "unpermitted URL");
 							return Plugin_Handled;
 						}
 					}
@@ -176,7 +176,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			}
 			else if (StrContains(message, gs_ChatFilters[x], false) != -1)
 			{
-				PerformPunishment(client, message, gs_ChatFilters[x]);
+				PerformPunishment(client, message, "unpermitted words", gs_ChatFilters[x]);
 				return Plugin_Handled;
 			}
 		}
@@ -194,7 +194,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 				case 0:
 				{
 					gr_RegexIP.GetSubString(0, substring, sizeof(substring), 0);
-					PerformPunishment(client, message, substring);
+					PerformPunishment(client, message, "unpermitted IP address", substring);
 					return Plugin_Handled;
 				}
 				case 1:
@@ -220,7 +220,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 						}
 						if (shouldpunish)
 						{
-							PerformPunishment(client, message, substring);
+							PerformPunishment(client, message, "unpermitted IP address", substring);
 							return Plugin_Handled;
 						}
 					}
