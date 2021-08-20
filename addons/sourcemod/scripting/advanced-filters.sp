@@ -90,14 +90,6 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 	
-	if (gb_AdminImmunityChat)
-	{
-		if (CheckCommandAccess(client, "", gi_AdminImmunityFlags, true))
-		{
-			return Plugin_Continue;
-		}
-	}
-	
 	if (gb_HideChatCommands)
 	{
 		if (message[0] == '!' || message[0] == '/')
@@ -107,6 +99,14 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 				PrintToChat(client, "This command does not exist.");
 			}
 			return Plugin_Handled;
+		}
+	}
+	
+	if (gb_AdminImmunityChat)
+	{
+		if (CheckCommandAccess(client, "", gi_AdminImmunityFlags, true))
+		{
+			return Plugin_Continue;
 		}
 	}
 	
