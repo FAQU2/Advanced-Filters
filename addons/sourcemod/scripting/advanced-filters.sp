@@ -23,7 +23,7 @@ public void OnPluginStart()
 {
 	gr_RegexASCII = new Regex("[^[:ascii:]]+", PCRE_UTF8);
 	gr_RegexIP = new Regex("(?<!\\d)(?:(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)\\.){3}(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)(?!\\d)");
-	gr_RegexURL = new Regex("(?:https?:\\/\\/)?(?:www\\.)?(?:\\S+\\.)+\\S+\\/\\S*|(?:https?:\\/\\/|www\\.)(?:\\S+\\.)+\\S+", PCRE_CASELESS);
+	gr_RegexURL = new Regex("(?:https?:\\/\\/)?(?:www\\.)?(?:\\S+\\.)+\\S+\\/\\S*|(?:https?:\\/\\/|www\\.)(?:\\S+\\.)+\\S+", PCRE_UTF8|PCRE_CASELESS);
 	
 	BuildPath(Path_SM, gs_ChatFilePath, sizeof(gs_ChatFilePath), "configs/advanced-filters/chatfilters.cfg");
 	BuildPath(Path_SM, gs_NameFilePath, sizeof(gs_NameFilePath), "configs/advanced-filters/namefilters.cfg");
