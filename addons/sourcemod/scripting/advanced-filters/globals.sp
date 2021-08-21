@@ -24,6 +24,7 @@ ConVar gc_bBlockChatURL;
 ConVar gc_bHideChatCommands;
 ConVar gc_bHideNameChangeMsg;
 ConVar gc_bHideConnectMsg;
+ConVar gc_bHideDisconnectMsg;
 ConVar gc_bDisableTeamChat;
 ConVar gc_iPunishmentMethod;
 ConVar gc_iBanMethod;
@@ -35,6 +36,9 @@ ConVar gc_bUseIpNameFilters;
 ConVar gc_bRemoveNameSymbols;
 ConVar gc_bRemoveNameURL;
 ConVar gc_bRenameTooShort;
+ConVar gc_bAdminImmunityChat;
+ConVar gc_bAdminImmunityName;
+ConVar gc_sAdminImmunityFlags;
 
 // Variables used for storing ConVar data
 bool gb_UseChatFilters;
@@ -44,6 +48,7 @@ bool gb_BlockChatURL;
 bool gb_HideChatCommands;
 bool gb_HideNameChangeMsg;
 bool gb_HideConnectMsg;
+bool gb_HideDisconnectMsg;
 bool gb_DisableTeamChat;
 int gi_PunishmentMethod;
 int gi_BanMethod;
@@ -55,6 +60,9 @@ bool gb_UseIpNameFilters;
 bool gb_RemoveNameSymbols;
 bool gb_RemoveNameURL;
 bool gb_RenameTooShort;
+bool gb_AdminImmunityChat;
+bool gb_AdminImmunityName;
+int gi_AdminImmunityFlags;
 
 // Variable used for storing sourcebans++ status
 bool gb_SourcebansPP;

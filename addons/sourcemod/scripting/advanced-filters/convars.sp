@@ -7,6 +7,7 @@ void RegisterConVars()
 	gc_bHideChatCommands = CreateConVar("advanced_chat_hidecommands", "1", "Hide sourcemod commands from chat [1 = Enabled / 0 = Disabled]");
 	gc_bHideNameChangeMsg = CreateConVar("advanced_chat_hidenamechangemsg", "1", "Hide player changed name notifications from chat [1 = Enabled / 0 = Disabled]");
 	gc_bHideConnectMsg = CreateConVar("advanced_chat_hideconnectmsg", "1", "Hide player connected notifications from chat [1 = Enabled / 0 = Disabled]");
+	gc_bHideDisconnectMsg = CreateConVar("advanced_chat_hidedisconnectmsg", "0", "Hide player disconnected notifications from chat [1 = Enabled / 0 = Disabled]");
 	gc_bDisableTeamChat = CreateConVar("advanced_teamchat_disabled", "0", "Disable teamchat and redirect all messages to general chat [1 = Enabled / 0 = Disabled]");
 	gc_iPunishmentMethod = CreateConVar("advanced_chat_punishment", "0", "Punishment method for chat abuse [0 = Message blocked / 1 = Kick player / 2 = Ban player]");
 	gc_iBanMethod = CreateConVar("advanced_chat_banmethod", "0", "Method of applying the player ban [0 = SteamID only / 1 = IP address only / 2 = SteamID + IP address]");
@@ -18,6 +19,9 @@ void RegisterConVars()
 	gc_bRemoveNameSymbols = CreateConVar("advanced_name_removesymbols", "1", "Remove non-ASCII characters from the players' nicknames [1 = Enabled / 0 = Disabled]");
 	gc_bRemoveNameURL = CreateConVar("advanced_name_removeurls", "1", "Remove URLs from players' nicknames [1 = Enabled / 0 = Disabled]");
 	gc_bRenameTooShort = CreateConVar("advanced_name_renametooshort", "1", "Rename players with nicknames shorter than 3 characters to 'Player #userid' [1 = Enabled / 0 = Disabled]");
+	gc_bAdminImmunityChat = CreateConVar("advanced_immunity_chat", "1", "Make admins bypass all chat filtering [1 = Enabled / 0 = Disabled]");
+	gc_bAdminImmunityName = CreateConVar("advanced_immunity_name", "1", "Make admins bypass all name filtering [1 = Enabled / 0 = Disabled]");
+	gc_sAdminImmunityFlags = CreateConVar("advanced_immunity_flags", "z", "Flags an admin should have to bypass filtering [Check sourcemod wiki for valid flags]");
 	AutoExecConfig(true, "advanced-filters");
 }
 
@@ -30,6 +34,7 @@ void HookAllConVars()
 	gc_bHideChatCommands.AddChangeHook(Hook_HideChatCommands);
 	gc_bHideNameChangeMsg.AddChangeHook(Hook_HideNameChangeMsg);
 	gc_bHideConnectMsg.AddChangeHook(Hook_HideConnectMsg);
+	gc_bHideDisconnectMsg.AddChangeHook(Hook_HideDisconnectMsg);
 	gc_bDisableTeamChat.AddChangeHook(Hook_DisableTeamChat);
 	gc_iPunishmentMethod.AddChangeHook(Hook_PunishmentMethod);
 	gc_iBanMethod.AddChangeHook(Hook_BanMethod);
@@ -41,6 +46,9 @@ void HookAllConVars()
 	gc_bRemoveNameSymbols.AddChangeHook(Hook_RemoveNameSymbols);
 	gc_bRemoveNameURL.AddChangeHook(Hook_RemoveNameURL);
 	gc_bRenameTooShort.AddChangeHook(Hook_RenameTooShort);
+	gc_bAdminImmunityChat.AddChangeHook(Hook_AdminImmunityChat);
+	gc_bAdminImmunityName.AddChangeHook(Hook_AdminImmunityName);
+	gc_sAdminImmunityFlags.AddChangeHook(Hook_AdminImmunityFlags);
 }
 
 void SaveConVarData()
@@ -52,6 +60,7 @@ void SaveConVarData()
 	gb_HideChatCommands = gc_bHideChatCommands.BoolValue;
 	gb_HideNameChangeMsg = gc_bHideNameChangeMsg.BoolValue;
 	gb_HideConnectMsg = gc_bHideConnectMsg.BoolValue;
+	gb_HideDisconnectMsg = gc_bHideDisconnectMsg.BoolValue;
 	gb_DisableTeamChat = gc_bDisableTeamChat.BoolValue;
 	gi_PunishmentMethod = gc_iPunishmentMethod.IntValue;
 	gi_BanMethod = gc_iBanMethod.IntValue;
@@ -63,6 +72,11 @@ void SaveConVarData()
 	gb_RemoveNameSymbols = gc_bRemoveNameSymbols.BoolValue;
 	gb_RemoveNameURL = gc_bRemoveNameURL.BoolValue;
 	gb_RenameTooShort = gc_bRenameTooShort.BoolValue;
+	gb_AdminImmunityChat = gc_bAdminImmunityChat.BoolValue;
+	gb_AdminImmunityName = gc_bAdminImmunityName.BoolValue;
+	char flags[24]; 
+	gc_sAdminImmunityFlags.GetString(flags, sizeof(flags));
+	gi_AdminImmunityFlags = ReadFlagString(flags);
 }
 
 public void Hook_UseChatFilters(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -102,6 +116,11 @@ public void Hook_HideNameChangeMsg(ConVar convar, const char[] oldValue, const c
 public void Hook_HideConnectMsg(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	gb_HideConnectMsg = convar.BoolValue;
+}
+
+public void Hook_HideDisconnectMsg(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gb_HideDisconnectMsg = convar.BoolValue;
 }
 
 public void Hook_DisableTeamChat(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -192,5 +211,24 @@ public void Hook_RenameTooShort(ConVar convar, const char[] oldValue, const char
 	switch((gb_RenameTooShort = convar.BoolValue))
 	{
 		case 1: PerformNameCheckAll();
+	}
+}
+
+public void Hook_AdminImmunityChat(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gb_AdminImmunityChat = convar.BoolValue;
+}
+
+public void Hook_AdminImmunityName(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gb_AdminImmunityName = convar.BoolValue;
+}
+
+public void Hook_AdminImmunityFlags(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	switch (newValue[0])
+	{
+		case '\0': gi_AdminImmunityFlags = ADMFLAG_ROOT;
+		default: gi_AdminImmunityFlags = ReadFlagString(newValue);
 	}
 }

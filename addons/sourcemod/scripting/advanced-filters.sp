@@ -13,7 +13,7 @@ public Plugin myinfo =
 	name = "Advanced Filters",
 	author = "FAQU",
 	description = "Chat & Name filtering",
-	version = "1.1",
+	version = "1.2",
 	url = "https://github.com/FAQU2"
 };
 
@@ -23,7 +23,7 @@ public void OnPluginStart()
 {
 	gr_RegexASCII = new Regex("[^[:ascii:]]+", PCRE_UTF8);
 	gr_RegexIP = new Regex("(?<!\\d)(?:(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)\\.){3}(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)(?!\\d)");
-	gr_RegexURL = new Regex("(?:https?:\\/\\/)?(?:www\\.)?(?:\\w+\\.)+\\w+\\/[[:graph:]]*|(?:https?:\\/\\/|www\\.)(?:\\w+\\.)+\\w+");
+	gr_RegexURL = new Regex("(?:https?:\\/\\/)?(?:www\\.)?(?:\\S+\\.)+\\S+\\/\\S*|(?:https?:\\/\\/|www\\.)(?:\\S+\\.)+\\S+");
 	
 	BuildPath(Path_SM, gs_ChatFilePath, sizeof(gs_ChatFilePath), "configs/advanced-filters/chatfilters.cfg");
 	BuildPath(Path_SM, gs_NameFilePath, sizeof(gs_NameFilePath), "configs/advanced-filters/namefilters.cfg");
@@ -36,6 +36,7 @@ public void OnPluginStart()
 	HookAllConVars();
 	
 	HookEvent("player_connect", Event_PlayerConnect, EventHookMode_Pre);
+	HookEvent("player_disconnect", Event_PlayerDisconnect, EventHookMode_Pre);
 	HookEvent("player_changename", Event_PlayerChangename);
 	HookUserMessage(GetUserMessageId("SayText2"), Hook_SayText2, true);
 	
@@ -80,6 +81,15 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	strcopy(message, sizeof(message), argstring);
 	TrimString(message);
 	
+	if (gb_DisableTeamChat)
+	{
+		if (strcmp(command, "say") == 1 && !IsChatTrigger() && message[0] != '@' )
+		{
+			FakeClientCommandEx(client, "say %s", message);
+			return Plugin_Handled;
+		}
+	}
+	
 	if (gb_HideChatCommands)
 	{
 		if (message[0] == '!' || message[0] == '/')
@@ -92,11 +102,19 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		}
 	}
 	
+	if (gb_AdminImmunityChat)
+	{
+		if (CheckCommandAccess(client, "", gi_AdminImmunityFlags, true))
+		{
+			return Plugin_Continue;
+		}
+	}
+	
 	if (gb_BlockChatSymbols)
 	{
 		if (gr_RegexASCII.Match(message) > 0)
 		{
-			PrintToChat(client, "Your message has been blocked as it contains non-ASCII characters.");
+			PerformBlock(client, message, "non-ASCII characters");
 			return Plugin_Handled;
 		}
 	}
@@ -112,7 +130,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			{
 				case 0:
 				{
-					PrintToChat(client, "Your message has been blocked as it contains unpermitted URLs.");
+					PerformBlock(client, message, "unpermitted URL");
 					return Plugin_Handled;
 				}
 				case 1:
@@ -138,7 +156,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 						}
 						if (shouldblock)
 						{
-							PrintToChat(client, "Your message has been blocked as it contains unpermitted URLs.");
+							PerformBlock(client, message, "unpermitted URL");
 							return Plugin_Handled;
 						}
 					}
@@ -158,7 +176,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 			}
 			else if (StrContains(message, gs_ChatFilters[x], false) != -1)
 			{
-				PerformPunishment(client, message, gs_ChatFilters[x]);
+				PerformPunishment(client, message, "unpermitted words", gs_ChatFilters[x]);
 				return Plugin_Handled;
 			}
 		}
@@ -176,7 +194,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 				case 0:
 				{
 					gr_RegexIP.GetSubString(0, substring, sizeof(substring), 0);
-					PerformPunishment(client, message, substring);
+					PerformPunishment(client, message, "unpermitted IP address", substring);
 					return Plugin_Handled;
 				}
 				case 1:
@@ -202,21 +220,12 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 						}
 						if (shouldpunish)
 						{
-							PerformPunishment(client, message, substring);
+							PerformPunishment(client, message, "unpermitted IP address", substring);
 							return Plugin_Handled;
 						}
 					}
 				}
 			}
-		}
-	}
-	
-	if (gb_DisableTeamChat)
-	{
-		if (message[0] != '@' && strcmp(command, "say_team") == 0)
-		{
-			FakeClientCommandEx(client, "say %s", message);
-			return Plugin_Handled;
 		}
 	}
 	
@@ -254,6 +263,14 @@ public Action Hook_SayText2(UserMsg msg_id, Handle msg, const int[] players, int
 public Action Event_PlayerConnect(Event event, const char[] name, bool dontBroadcast)
 {
 	if (gb_HideConnectMsg)
+	{
+		SetEventBroadcast(event, true);
+	}
+}
+
+public Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
+{
+	if (gb_HideDisconnectMsg)
 	{
 		SetEventBroadcast(event, true);
 	}
