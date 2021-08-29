@@ -83,7 +83,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	if (gb_DisableTeamChat)
 	{
-		if (strcmp(command, "say") == 1 && !IsChatTrigger() && message[0] != '@' )
+		if (strcmp(command, "say") == 1 && !IsChatTrigger() && message[0] != '@')
 		{
 			FakeClientCommandEx(client, "say %s", message);
 			return Plugin_Handled;
@@ -124,7 +124,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 		int matches;
 		if ((matches = gr_RegexURL.MatchAll(message)) > 0)
 		{
-			char substring[50];
+			char substring[100];
 			
 			switch (gb_UseWhitelistURL)
 			{

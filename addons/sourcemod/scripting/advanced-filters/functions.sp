@@ -192,7 +192,7 @@ void PerformNameCheck(int client, Event event)
 		int matches;
 		if ((matches = gr_RegexURL.MatchAll(name)) > 0)
 		{
-			char substring[20];
+			char substring[100];
 			for (int i = 0; i < matches; i++)
 			{
 				gr_RegexURL.GetSubString(0, substring, sizeof(substring), i);
