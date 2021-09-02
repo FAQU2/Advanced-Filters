@@ -1,5 +1,4 @@
 // Handles for storing precompiled regex
-Regex gr_RegexASCII;
 Regex gr_RegexIP;
 Regex gr_RegexURL;
 

@@ -174,14 +174,17 @@ void PerformNameCheck(int client, Event event)
 	
 	if (gb_RemoveNameSymbols)
 	{
-		int matches;
-		if ((matches = gr_RegexASCII.MatchAll(name)) > 0)
+		int loops = sizeof(name);
+		for (int x = 0; x < loops; x++)
 		{
-			char substring[64];
-			for (int x = 0; x < matches; x++)
+			if (name[x] == '\0')
 			{
-				gr_RegexASCII.GetSubString(0, substring, sizeof(substring), x);
-				ReplaceStringEx(name, sizeof(name), substring, "");
+				break;
+			}
+			else if (name[x] > 0x7F)
+			{
+				strcopy(name[x], loops - x, name[x + 1]);
+				x--;
 			}
 		}
 		TrimString(name);

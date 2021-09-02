@@ -21,7 +21,6 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-	gr_RegexASCII = new Regex("[^[:ascii:]]+", PCRE_UTF8);
 	gr_RegexIP = new Regex("(?<!\\d)(?:(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)\\.){3}(?:2[0-5][0-5]|1\\d\\d|[1-9]\\d|\\d)(?!\\d)");
 	gr_RegexURL = new Regex("(?:https?:\\/\\/)?(?:www\\.)?(?:\\S+\\.)+\\S+\\/\\S*|(?:https?:\\/\\/|www\\.)(?:\\S+\\.)+\\S+", PCRE_UTF8|PCRE_CASELESS);
 	
@@ -112,10 +111,18 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	if (gb_BlockChatSymbols)
 	{
-		if (gr_RegexASCII.Match(message) > 0)
+		int loops = sizeof(message);
+		for (int x = 0; x < loops; x++)
 		{
-			PerformBlock(client, message, "non-ASCII characters");
-			return Plugin_Handled;
+			if (message[x] == '\0')
+			{
+				break;
+			}
+			else if (message[x] > 0x7F)
+			{
+				PerformBlock(client, message, "non-ASCII characters");
+				return Plugin_Handled;
+			}
 		}
 	}
 	
