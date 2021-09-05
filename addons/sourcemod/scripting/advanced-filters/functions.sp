@@ -91,49 +91,45 @@ void PerformBlock(int client, const char[] message, const char[] content)
 
 void PerformKick(int client, const char[] message, const char[] content, const char[] filter)
 {
-	KickClient(client, "Kicked for typing %s in chat.\n\n%c%s: %s", content, CharToUpper(content[0]), content[1], filter);
+	KickClient(client, "You have been kicked from the server.\n\nReason: Typing %s in chat. (%s)", content, filter);
 	LogToFile(gs_LogFilePath, "Kicked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
 }
 
 void PerformBan(int client, const char[] message, const char[] content, const char[] filter)
 {
 	char steamid[32], ip[32];
-	
 	GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
 	GetClientIP(client, ip, sizeof(ip));
 	
 	if (gb_SourcebansPP)
 	{
-		SBPP_BanPlayer(0, client, gi_BanDuration, "Chat Abuse (autodetected by Advanced-Filters)");
+		SBPP_BanPlayer(0, client, gi_BanDuration, "Breaking chat rules");
 		LogToFile(gs_LogFilePath, "Banned \"%N [%s | %s]\" according to the chat filters. Message: \"%s\"", client, steamid, ip, message);
 	}
 	else
 	{
+		char kickmsg[192];
+		FormatEx(kickmsg, sizeof(kickmsg), "You have been %s banned from the server.\n\nReason: Typing %s in chat. (%s)", gi_BanDuration ? "temporarily":"permanently", content, filter);
+		
 		switch (gi_BanMethod)
 		{
-			case 0: 
+			case 0:
 			{
-				BanClient(client, gi_BanDuration, BANFLAG_AUTHID | BANFLAG_NOKICK, "Chat Abuse (autodetected by Advanced-Filters)", "", "Advanced-filters");
+				BanClient(client, gi_BanDuration, BANFLAG_AUTHID, "Breaking chat rules", kickmsg, "Advanced-Filters");
 				LogToFile(gs_LogFilePath, "Banned \"%N [%s]\" according to the chat filters. Message: \"%s\"", client, steamid, message);
 			}
-			case 1: 
+			case 1:
 			{
-				BanClient(client, gi_BanDuration, BANFLAG_IP | BANFLAG_NOKICK, "Chat Abuse (autodetected by Advanced-Filters)", "", "Advanced-filters");
+				BanClient(client, gi_BanDuration, BANFLAG_IP, "Breaking chat rules", kickmsg, "Advanced-Filters");
 				LogToFile(gs_LogFilePath, "Banned \"%N [%s]\" according to the chat filters. Message: \"%s\"", client, ip, message);
 			}
 			case 2:
 			{
-				BanClient(client, gi_BanDuration, BANFLAG_AUTHID | BANFLAG_NOKICK, "Chat Abuse (autodetected by Advanced-Filters)", "", "Advanced-filters");
-				BanClient(client, gi_BanDuration, BANFLAG_IP | BANFLAG_NOKICK, "Chat Abuse (autodetected by Advanced-Filters)", "", "Advanced-filters");
+				BanClient(client, gi_BanDuration, BANFLAG_AUTHID, "Breaking chat rules", kickmsg, "Advanced-Filters");
+				BanClient(client, gi_BanDuration, BANFLAG_IP, "Breaking chat rules", kickmsg, "Advanced-Filters");
 				LogToFile(gs_LogFilePath, "Banned \"%N [%s | %s]\" according to the chat filters. Message: \"%s\"", client, steamid, ip, message);
 			}
 		}
-	}
-	
-	switch (gi_BanDuration)
-	{
-		case 0: KickClient(client, "Banned permanently from the server.\n\nAdmin: Server Console\nReason: typing %s in chat\n\n%c%s: %s", content, CharToUpper(content[0]), content[1], filter);
-		default: KickClient(client, "Banned temporarily from the server.\n\nAdmin: Server Console\nDuration: %i minutes\nReason: typing %s in chat\n\n%c%s: %s", gi_BanDuration, content, CharToUpper(content[0]), content[1], filter);
 	}
 }
 
