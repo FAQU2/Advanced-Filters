@@ -179,7 +179,7 @@ void PerformNameCheck(int client, Event event)
 			}
 			else if (name[x] > 0x7F)
 			{
-				strcopy(name[x], loops - x, name[x + 1]);
+				strcopy(name[x], loops, name[x + 1]);
 				x--;
 			}
 		}

@@ -82,7 +82,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	if (gb_DisableTeamChat)
 	{
-		if (strcmp(command, "say") == 1 && !IsChatTrigger() && message[0] != '@')
+		if (command[3] != '\0' && !IsChatTrigger() && message[0] != '@')
 		{
 			FakeClientCommandEx(client, "say %s", message);
 			return Plugin_Handled;
@@ -91,13 +91,16 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	if (gb_HideChatCommands)
 	{
-		if (message[0] == '!' || message[0] == '/')
+		switch (message[0])
 		{
-			if (!IsChatTrigger())
+			case '!', '/':
 			{
-				PrintToChat(client, "This command does not exist.");
+				if (!IsChatTrigger())
+				{
+					PrintToChat(client, "This command does not exist.");
+				}
+				return Plugin_Handled;
 			}
-			return Plugin_Handled;
 		}
 	}
 	
