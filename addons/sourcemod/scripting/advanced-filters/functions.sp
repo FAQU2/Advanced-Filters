@@ -16,13 +16,8 @@ void WriteLinesToStringArray(const char[] filepath, char[][] stringarray, int si
 				
 				if (line[0] != '\0')
 				{
-					BreakString(line, line, sizeof(line));
-					
-					if (line[0] != '\0')
-					{
-						strcopy(stringarray[x], sizeofstring, line);
-						x++;
-					}
+					BreakString(line, stringarray[x], sizeofstring);
+					x++;
 				}
 			}
 		}
@@ -86,50 +81,55 @@ void ReloadFilters()
 void PerformBlock(int client, const char[] message, const char[] content)
 {
 	PrintToChat(client, "Your message has been blocked as it contains %s.", content);
-	LogToFile(gs_LogFilePath, "Blocked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
+	PerformLogging(gs_LogFilePath, "Blocked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
 }
 
 void PerformKick(int client, const char[] message, const char[] content, const char[] filter)
 {
 	KickClient(client, "You have been kicked from the server.\n\nReason: Typing %s in chat. (%s)", content, filter);
-	LogToFile(gs_LogFilePath, "Kicked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
+	PerformLogging(gs_LogFilePath, "Kicked \"%N\" according to the chat filters. Message: \"%s\"", client, message);
 }
 
 void PerformBan(int client, const char[] message, const char[] content, const char[] filter)
 {
-	char steamid[32], ip[32];
+	char steamid[32];
 	GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
+	
+	char ip[32];
 	GetClientIP(client, ip, sizeof(ip));
 	
-	if (gb_SourcebansPP)
+	PerformLogging(gs_LogFilePath, "Banned \"%N [%s | %s]\" according to the chat filters. Message: \"%s\"", client, steamid, ip, message);
+	
+	switch (gb_SourcebansPP)
 	{
-		SBPP_BanPlayer(0, client, gi_BanDuration, "Breaking chat rules");
-		LogToFile(gs_LogFilePath, "Banned \"%N [%s | %s]\" according to the chat filters. Message: \"%s\"", client, steamid, ip, message);
-	}
-	else
-	{
-		char kickmsg[192];
-		FormatEx(kickmsg, sizeof(kickmsg), "You have been %s banned from the server.\n\nReason: Typing %s in chat. (%s)", gi_BanDuration ? "temporarily":"permanently", content, filter);
-		
-		switch (gi_BanMethod)
+		case 1: SBPP_BanPlayer(0, client, gi_BanDuration, "Breaking chat rules");
+		case 0:
 		{
-			case 0:
+			char kickmsg[192];
+			FormatEx(kickmsg, sizeof(kickmsg), "You have been %s banned from the server.\n\nReason: Typing %s in chat. (%s)", gi_BanDuration ? "temporarily":"permanently", content, filter);
+			
+			switch (gi_BanMethod)
 			{
-				BanClient(client, gi_BanDuration, BANFLAG_AUTHID, "Breaking chat rules", kickmsg, "Advanced-Filters");
-				LogToFile(gs_LogFilePath, "Banned \"%N [%s]\" according to the chat filters. Message: \"%s\"", client, steamid, message);
-			}
-			case 1:
-			{
-				BanClient(client, gi_BanDuration, BANFLAG_IP, "Breaking chat rules", kickmsg, "Advanced-Filters");
-				LogToFile(gs_LogFilePath, "Banned \"%N [%s]\" according to the chat filters. Message: \"%s\"", client, ip, message);
-			}
-			case 2:
-			{
-				BanClient(client, gi_BanDuration, BANFLAG_AUTHID, "Breaking chat rules", kickmsg, "Advanced-Filters");
-				BanClient(client, gi_BanDuration, BANFLAG_IP, "Breaking chat rules", kickmsg, "Advanced-Filters");
-				LogToFile(gs_LogFilePath, "Banned \"%N [%s | %s]\" according to the chat filters. Message: \"%s\"", client, steamid, ip, message);
+				case 0: BanClient(client, gi_BanDuration, BANFLAG_AUTHID, "Breaking chat rules", kickmsg, "Advanced-Filters");
+				case 1: BanClient(client, gi_BanDuration, BANFLAG_IP, "Breaking chat rules", kickmsg, "Advanced-Filters");
+				case 2:
+				{
+					BanClient(client, gi_BanDuration, BANFLAG_AUTHID, "Breaking chat rules", kickmsg, "Advanced-Filters");
+					BanClient(client, gi_BanDuration, BANFLAG_IP, "Breaking chat rules", kickmsg, "Advanced-Filters");
+					
+				}
 			}
 		}
+	}
+}
+
+void PerformLogging(const char[] filepath, const char[] format, any ...)
+{
+	if (gb_EnableLogging)
+	{
+		char buffer[512];
+		VFormat(buffer, sizeof(buffer), format, 3);
+		LogToFile(filepath, buffer);
 	}
 }
 
@@ -301,7 +301,7 @@ void PerformNameCheck(int client, Event event)
 void PerformRename(int client, const char[] name, const char[] namecopy)
 {
 	SetClientInfo(client, "name", name);
-	LogToFile(gs_LogFilePath, "Renamed \"%s\" according to the name filters. New name: \"%s\"", namecopy, name);
+	PerformLogging(gs_LogFilePath, "Renamed \"%s\" according to the name filters. New name: \"%s\"", namecopy, name);
 }
 
 void PerformNameCheckAll()

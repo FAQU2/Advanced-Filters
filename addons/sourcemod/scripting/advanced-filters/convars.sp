@@ -19,9 +19,10 @@ void RegisterConVars()
 	gc_bRemoveNameSymbols = CreateConVar("advanced_name_removesymbols", "1", "Remove non-ASCII characters from the players' nicknames [1 = Enabled / 0 = Disabled]");
 	gc_bRemoveNameURL = CreateConVar("advanced_name_removeurls", "1", "Remove URLs from players' nicknames [1 = Enabled / 0 = Disabled]");
 	gc_bRenameTooShort = CreateConVar("advanced_name_renametooshort", "1", "Rename players with nicknames shorter than 3 characters to 'Player #userid' [1 = Enabled / 0 = Disabled]");
-	gc_bAdminImmunityChat = CreateConVar("advanced_immunity_chat", "1", "Make admins bypass all chat filtering [1 = Enabled / 0 = Disabled]");
-	gc_bAdminImmunityName = CreateConVar("advanced_immunity_name", "1", "Make admins bypass all name filtering [1 = Enabled / 0 = Disabled]");
+	gc_bAdminImmunityChat = CreateConVar("advanced_immunity_chat", "0", "Make admins bypass all chat filtering [1 = Enabled / 0 = Disabled]");
+	gc_bAdminImmunityName = CreateConVar("advanced_immunity_name", "0", "Make admins bypass all name filtering [1 = Enabled / 0 = Disabled]");
 	gc_sAdminImmunityFlags = CreateConVar("advanced_immunity_flags", "z", "Flags an admin should have to bypass filtering [Check sourcemod wiki for valid flags]");
+	gc_bEnableLogging = CreateConVar("advanced_logging", "0", "Enable logging to file logs/advanced-filters.log [1 = Enabled / 0 = Disabled]");
 	AutoExecConfig(true, "advanced-filters");
 }
 
@@ -49,6 +50,7 @@ void HookAllConVars()
 	gc_bAdminImmunityChat.AddChangeHook(Hook_AdminImmunityChat);
 	gc_bAdminImmunityName.AddChangeHook(Hook_AdminImmunityName);
 	gc_sAdminImmunityFlags.AddChangeHook(Hook_AdminImmunityFlags);
+	gc_bEnableLogging.AddChangeHook(Hook_EnableLogging);
 }
 
 void SaveConVarData()
@@ -77,6 +79,7 @@ void SaveConVarData()
 	char flags[24]; 
 	gc_sAdminImmunityFlags.GetString(flags, sizeof(flags));
 	gi_AdminImmunityFlags = ReadFlagString(flags);
+	gb_EnableLogging = gc_bEnableLogging.BoolValue;
 }
 
 public void Hook_UseChatFilters(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -231,4 +234,9 @@ public void Hook_AdminImmunityFlags(ConVar convar, const char[] oldValue, const 
 		case '\0': gi_AdminImmunityFlags = ADMFLAG_ROOT;
 		default: gi_AdminImmunityFlags = ReadFlagString(newValue);
 	}
+}
+
+public void Hook_EnableLogging(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	gb_EnableLogging = convar.BoolValue;
 }

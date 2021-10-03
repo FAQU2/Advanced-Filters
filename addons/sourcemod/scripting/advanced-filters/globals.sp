@@ -38,6 +38,7 @@ ConVar gc_bRenameTooShort;
 ConVar gc_bAdminImmunityChat;
 ConVar gc_bAdminImmunityName;
 ConVar gc_sAdminImmunityFlags;
+ConVar gc_bEnableLogging;
 
 // Variables used for storing ConVar data
 bool gb_UseChatFilters;
@@ -62,6 +63,7 @@ bool gb_RenameTooShort;
 bool gb_AdminImmunityChat;
 bool gb_AdminImmunityName;
 int gi_AdminImmunityFlags;
+bool gb_EnableLogging;
 
 // Variable used for storing sourcebans++ status
 bool gb_SourcebansPP;
